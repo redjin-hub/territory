@@ -1,0 +1,46 @@
+import pandas as pd
+import folium
+import json
+
+path = '/content/drive/MyDrive/Colab Notebooks/ts_raw_v1.xlsx'
+ts_data = pd.read_excel(path)
+ts_data['code'] = ts_data['code'].astype(str)
+
+geo_data = '/content/drive/MyDrive/Colab Notebooks/geo_data.json'
+
+with open(geo_data, mode = 'rt', encoding='utf-8') as f:
+  geo = json.loads(f.read())
+  f.close()
+
+m = folium.Map(location = [37, 128], zoom_start=8)
+
+folium.GeoJson(geo).add_to(m)
+
+choropleth = folium.Choropleth(
+    geo_data = geo,
+    data = ts_data,
+    columns=['code', 'depth'],
+    key_on = 'feature.properties.SIG_CD',
+    name = 'pop',
+    fill_color = 'Set1'
+).add_to(m)
+
+for idx, sigun_dict in enumerate(geo['features']):
+  sigun_id = sigun_dict['properties']['SIG_CD']
+  sigun_nm = ts_data.loc[(ts_data['code']==sigun_id), '시구군'].iloc[0]
+  people = ts_data.loc[(ts_data['code']==sigun_id), 'population'].iloc[0]
+  people_inc_rate = round(ts_data.loc[(ts_data['code']==sigun_id), '인구증감'].iloc[0], 2) * 100
+  sales = ts_data.loc[(ts_data['code']==sigun_id), '지역매출액'].iloc[0].astype(int)
+  sales_per_person = ts_data.loc[(ts_data['code']==sigun_id), '인당매출액'].iloc[0].astype(int)
+  ts = ts_data.loc[(ts_data['code']==sigun_id), 'TS구분'].iloc[0]
+  strategy = ts_data.loc[(ts_data['code']==sigun_id), '전략'].iloc[0]
+  attribute = ts_data.loc[(ts_data['code']==sigun_id), '권역특성'].iloc[0]
+  txt = f'<b><h4>{sigun_nm}</h4></b>인구증감(%):{people_inc_rate}%<br>매출액(백만):{sales}<br>인당매출(원):{sales_per_person}<br>TS구분:<font size="2em" color="green">{ts}</font><br>권역특성:{attribute}<br>전략:{strategy}'
+  geo['features'][idx]['properties']['tooltip1'] = txt
+
+
+choropleth.geojson.add_child(folium.features.GeoJsonTooltip(['tooltip1'], labels = False, style = ( 'background-color : black ; font-size : 13px ; color : white' )))
+title_html = '<h3 align="center" style="font-size:20px"><b>권역별 전략</b></h3>'
+m.get_root().html.add_child(folium.Element(title_html))
+folium.LayerControl().add_to(m)
+m.save( 'TS_Total_Test_220307.html' )
