@@ -1,0 +1,22 @@
+import folium
+import pandas as pd
+from folium.plugins import MarkerCluster
+
+map = folium.Map(location =  [37, 127], zoom_start =7)
+
+#데이터 불러오기
+df = pd.read_csv('/content/drive/MyDrive/Colab Notebooks/mini_2203.csv')
+
+list1=[]
+list2=[]
+marker_cluster = MarkerCluster().add_to(map)
+data = df[['순번','위도', '경도']]
+
+for a in data.index:
+    folium.Marker(location = [data.loc[a,"위도"],data.loc[a,"경도"]],
+                  popup=data.loc[a,"순번"]).add_to(marker_cluster)
+    list1.append(data.loc[a,"위도"])
+    list2.append(data.loc[a,"경도"])
+
+
+map.save( 'ministop_map_2203.html' )
